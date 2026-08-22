@@ -1,0 +1,39 @@
+name: Enable testing unlocks
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  unlock:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Unlock every weapon for testing
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('index.html')
+          s = p.read_text()
+          old = "let owned={1:true,2:false,3:false,4:false,5:false,6:false,7:false,8:false}"
+          new = "let owned={1:true,2:true,3:true,4:true,5:true,6:true,7:true,8:true}"
+          if old not in s:
+              raise SystemExit('Expected weapon ownership declaration was not found; refusing to modify the game.')
+          p.write_text(s.replace(old, new, 1))
+          PY
+
+      - name: Commit unlock change and remove temporary workflow
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html .github/workflows/unlock-testing.yml
+          git commit -m "Enable all weapons for testing"
+          git rm .github/workflows/unlock-testing.yml
+          git commit -m "Remove temporary testing unlock workflow"
+          git push
